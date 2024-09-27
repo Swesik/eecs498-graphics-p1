@@ -1,8 +1,9 @@
 #pragma once
 
+#include <vector>
+
 #include "Math.h"
 #include "Ray.h"
-#include <vector>
 
 class Mesh {
 public:
@@ -15,11 +16,11 @@ public:
     /**
      * returns the time that the ray travels before hitting this mesh
      * returns FLOAT_MAX if they don't intersect
-    */
+     */
     float intersect(const Ray& ray);
     /**
      * @brief sample a random point on the mesh surface
-    */
+     */
     Vec3 sample() const;
     bool isPointInsideMesh(const Vec3& point) const;
 };
@@ -33,10 +34,7 @@ public:
     static BoundingBox constructFromMesh(const Mesh&);
     void boxUnion(const BoundingBox& other);
 
-    enum class Extent {
-        x = 0,
-        y, z
-    };
+    enum class Extent { x = 0, y, z };
 
     Vec3 centroid() const;
     Vec3 diagonal() const;
@@ -46,18 +44,18 @@ public:
      * return the shortest time that the ray travels before hitting the bounding box
      * return FLOAT_MAX if they don't intersect
      * a negative return value means the ray starts from inside the box
-    */
+     */
     float intersect(const Ray& ray) const;
 };
 
 // forward declaration.
-// We're going to use Intersection in Object class, 
+// We're going to use Intersection in Object class,
 // and use Object in the Intersection struct
 struct Intersection;
 
 class Object {
 public:
-    std::string name = ""; // for debug
+    std::string name = "";   // for debug
     BoundingBox box;
     std::vector<Mesh> meshes;
     float area;
@@ -67,7 +65,7 @@ public:
     bool hasEmission = false;
     /**
      * @brief sample a surface point
-    */
+     */
     Intersection sample() const;
     void constructBoundingBox();
 };
@@ -99,10 +97,11 @@ public:
 
 class BVH {
 public:
-    BVHNode *root = nullptr;
+    BVHNode* root = nullptr;
     static BVHNode* build(const std::vector<Object*>& objects);
     /**
      * @param box the bounding box of all the objects
-    */
-    static std::pair<std::vector<Object*>, std::vector<Object*>> splitObjects(std::vector<Object*> objects, const BoundingBox& box);
+     */
+    static std::pair<std::vector<Object*>, std::vector<Object*>> splitObjects(std::vector<Object*> objects,
+                                                                              const BoundingBox& box);
 };

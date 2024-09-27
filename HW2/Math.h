@@ -36,6 +36,7 @@ public:
 class Random {
     static std::mt19937 generator;
     static std::uniform_real_distribution<float> distribution;
+
 public:
     // Generate a random float in [0, 1)
     static float randUniformFloat();

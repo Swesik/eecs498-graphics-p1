@@ -1,10 +1,10 @@
 #pragma once
 
-#include "tiny_obj_loader.h"
-#include "Accel.h"
-
 #include <string>
 #include <vector>
+
+#include "Accel.h"
+#include "tiny_obj_loader.h"
 
 class Scene {
 public:
@@ -21,7 +21,7 @@ public:
     /**
      * @brief sample a point from the first object in the light vector
      * @todo add support for multiple light objects
-    */
+     */
     Intersection sampleLight() const;
     Vec3 trace(const Ray& ray, int bouncesLeft = 2, bool discardEmission = false);
     ~Scene();

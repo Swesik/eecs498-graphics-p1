@@ -5,7 +5,7 @@
 #include <string_view>
 
 
-constexpr int SPP = 16;
+constexpr int SPP = 32;
 
 constexpr int SEED = 42;
 constexpr int RESOLUTION = 512;
@@ -16,4 +16,4 @@ constexpr std::string_view OBJ_PATH = "./models/cornellBox/CornellBox-Original.o
 constexpr std::string_view MTL_SEARCH_DIR = "./models/cornellBox/";
 constexpr std::string_view OUTPUT_PATH = "./binary.ppm";
 
-constexpr bool DEBUG = false; // reserved for future use. Do not enable it currently.
+constexpr bool DEBUG = false;   // reserved for future use. Do not enable it currently.

@@ -1,25 +1,27 @@
-#include "Scene.h"
-#include "Config.h"
-
-#include <filesystem>
-#include <fstream>
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
+#include <fstream>
+
+#include "Config.h"
+#include "Scene.h"
 
 constexpr float GAMMA = 0.6f;
 
-void UpdateProgress(float progress)
-{
-    static bool checkPoints[10] = {false};
-    if constexpr(DEBUG) {
+void UpdateProgress(float progress) {
+    static bool checkPoints[10] = { false };
+    if constexpr (DEBUG) {
         int barWidth = 32;
 
         std::cout << "[";
         int pos = barWidth * progress;
         for (int i = 0; i < barWidth; ++i) {
-            if (i < pos) std::cout << "=";
-            else if (i == pos) std::cout << ">";
-            else std::cout << " ";
+            if (i < pos)
+                std::cout << "=";
+            else if (i == pos)
+                std::cout << ">";
+            else
+                std::cout << " ";
         }
         std::cout << "] " << int(progress * 100.0) << " %\r";
         std::cout.flush();
@@ -47,17 +49,16 @@ int main() {
     Scene scene;
     scene.addObjects(OBJ_PATH, MTL_SEARCH_DIR);
     scene.constructBVH();
-    
+
     auto timeAfterVBVH = high_resolution_clock::now();
-    std::cout << "BVH Construction time in seconds: " << duration_cast<seconds>(timeAfterVBVH - startTime).count() << '\n';
+    std::cout << "BVH Construction time in seconds: " << duration_cast<seconds>(timeAfterVBVH - startTime).count()
+              << '\n';
     int width = RESOLUTION, height = RESOLUTION;
     std::vector<std::vector<Vec3>> image(height, std::vector<Vec3>(width));
-    Vec3 cameraPos = {
-        0.0f, 1.0f, 4.0f
-    };
+    Vec3 cameraPos = { 0.0f, 1.0f, 4.0f };
 
-    if constexpr(!DEBUG) {
-        std::cout << "Debug mode disabled. Progress output will be in brief." <<  '\n';
+    if constexpr (!DEBUG) {
+        std::cout << "Debug mode disabled. Progress output will be in brief." << '\n';
     }
 
     // x: right
@@ -65,11 +66,7 @@ int main() {
     // z: outwards
     for (size_t y = 0; y < height; y++) {
         for (size_t x = 0; x < width; x++) {
-            Vec3 worldPos = {
-                (float)x / width - 0.5f, 
-                1.5f - (float)y / height,
-                (cameraPos.z + 1.0f) / 2
-            };
+            Vec3 worldPos = { (float) x / width - 0.5f, 1.5f - (float) y / height, (cameraPos.z + 1.0f) / 2 };
             Ray ray {
                 cameraPos,
                 worldPos - cameraPos,
@@ -80,7 +77,7 @@ int main() {
                 value += scene.trace(ray, MAX_DEPTH);
             }
             image[y][x] = value / SPP;
-            UpdateProgress((float)(y * width + x) / (width * height));
+            UpdateProgress((float) (y * width + x) / (width * height));
         }
     }
     std::cout << std::endl;
@@ -91,7 +88,7 @@ int main() {
     std::filesystem::path outPath = std::filesystem::absolute(OUTPUT_PATH);
 
     FILE* fp = fopen(outPath.string().c_str(), "wb");
-    (void)fprintf(fp, "P6\n%d %d\n255\n", width, height);
+    (void) fprintf(fp, "P6\n%d %d\n255\n", width, height);
     for (size_t y = 0; y < height; y++) {
         for (size_t x = 0; x < width; x++) {
             static unsigned char color[3];
