@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <iostream>
 
+#include "Accel.h"
 #include "Config.h"
 #include "Math.h"
 
@@ -16,14 +17,28 @@ Vec3 Scene::trace(const Ray& ray, int bouncesLeft, bool discardEmission) {
     }
     if (bouncesLeft < 0) return {};
 
-    // TODO...
     Intersection intersection = getIntersection(ray);
     if (!intersection.happened) {
         return Vec3();
     }
 
-    // Vec3 l_e = intersection.getEmission();
-    return intersection.getDiffuseColor();
+    Vec3 rand_inRay = Random::randomHemisphereDirection(intersection.getNormal());
+    rand_inRay.normalize();
+
+    Ray bounce_ray = { intersection.pos, rand_inRay };
+    Intersection sample_intersec = getIntersection(bounce_ray);
+
+    if (!sample_intersec.happened) {
+        return intersection.getEmission();
+    }
+
+    const float p = 1 / (2 * PI);
+    float cos_theta = bounce_ray.dir.dot(intersection.getNormal());
+    Vec3 brdf = intersection.calcBRDF(-rand_inRay, -ray.dir);
+    Vec3 bounce_emission = trace(bounce_ray, bouncesLeft - 1, discardEmission);
+
+    return intersection.getEmission() + brdf * bounce_emission * cos_theta / p;
+    // return intersection.getEmission() + brdf * sample_intersec.getEmission() * cos_theta / p;
 }
 
 tinyobj::ObjReader Scene::reader {};
