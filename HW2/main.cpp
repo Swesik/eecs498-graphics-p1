@@ -2,6 +2,8 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <functional>
+#include <thread>
 
 #include "Config.h"
 #include "Scene.h"
@@ -42,6 +44,22 @@ unsigned char toLinear(float sRGB) {
     return 255 * std::pow(std::clamp(sRGB, 0.0f, 1.0f), GAMMA);
 }
 
+void update_pixel(size_t x, size_t y, Scene& scene, std::vector<std::vector<Vec3>>& image, int width, int height,
+                  Vec3 cameraPos) {
+    Vec3 worldPos = { (float) x / width - 0.5f, 1.5f - (float) y / height, (cameraPos.z + 1.0f) / 2 };
+    Ray ray {
+        cameraPos,
+        worldPos - cameraPos,
+    };
+    ray.dir.normalize();
+    Vec3 value {};
+    for (int i = 0; i < SPP; i++) {
+        value += scene.trace(ray, MAX_DEPTH);
+    }
+    image[y][x] = value / SPP;
+    UpdateProgress((float) (y * width + x) / (width * height));
+}
+
 int main() {
     using namespace std::chrono;
     auto startTime = high_resolution_clock::now();
@@ -64,21 +82,14 @@ int main() {
     // x: right
     // y: up
     // z: outwards
+    std::vector<std::thread> pixel_threads;
     for (size_t y = 0; y < height; y++) {
         for (size_t x = 0; x < width; x++) {
-            Vec3 worldPos = { (float) x / width - 0.5f, 1.5f - (float) y / height, (cameraPos.z + 1.0f) / 2 };
-            Ray ray {
-                cameraPos,
-                worldPos - cameraPos,
-            };
-            ray.dir.normalize();
-            Vec3 value {};
-            for (int i = 0; i < SPP; i++) {
-                value += scene.trace(ray, MAX_DEPTH);
-            }
-            image[y][x] = value / SPP;
-            UpdateProgress((float) (y * width + x) / (width * height));
+            pixel_threads.emplace_back(update_pixel, x, y, std::ref(scene), std::ref(image), width, height, cameraPos);
         }
+    }
+    for (auto& i : pixel_threads) {
+        i.join();
     }
     std::cout << std::endl;
 
