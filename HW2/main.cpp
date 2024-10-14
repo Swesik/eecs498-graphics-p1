@@ -60,6 +60,12 @@ void update_pixel(size_t x, size_t y, Scene& scene, std::vector<std::vector<Vec3
     UpdateProgress((float) (y * width + x) / (width * height));
 }
 
+void update_row(size_t y, Scene& scene, std::vector<std::vector<Vec3>>& image, int width, int height, Vec3 cameraPos) {
+    for (size_t x = 0; x < width; x++) {
+        update_pixel(x, y, std::ref(scene), std::ref(image), width, height, cameraPos);
+    }
+}
+
 int main() {
     using namespace std::chrono;
     auto startTime = high_resolution_clock::now();
@@ -84,9 +90,7 @@ int main() {
     // z: outwards
     std::vector<std::thread> pixel_threads;
     for (size_t y = 0; y < height; y++) {
-        for (size_t x = 0; x < width; x++) {
-            pixel_threads.emplace_back(update_pixel, x, y, std::ref(scene), std::ref(image), width, height, cameraPos);
-        }
+        pixel_threads.emplace_back(update_row, y, std::ref(scene), std::ref(image), width, height, cameraPos);
     }
     for (auto& i : pixel_threads) {
         i.join();
