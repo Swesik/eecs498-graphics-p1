@@ -138,3 +138,82 @@ Vec3 Scene::trace(const Ray& ray, int bouncesLeft, bool discardEmission) {
 ```
 
 ![32 spp image - acceleration](acceleration.png)
+
+## Task 9.1: Multi-threading acceleration
+```
+void update_pixel(size_t x, size_t y, Scene& scene, std::vector<std::vector<Vec3>>& image, int width, int height,
+                  Vec3 cameraPos) {
+    Vec3 worldPos = { (float) x / width - 0.5f, 1.5f - (float) y / height, (cameraPos.z + 1.0f) / 2 };
+    Ray ray {
+        cameraPos,
+        worldPos - cameraPos,
+    };
+    ray.dir.normalize();
+    Vec3 value {};
+    for (int i = 0; i < SPP; i++) {
+        value += scene.trace(ray, MAX_DEPTH);
+    }
+    image[y][x] = value / SPP;
+    UpdateProgress((float) (y * width + x) / (width * height));
+}
+
+void update_row(size_t y, Scene& scene, std::vector<std::vector<Vec3>>& image, int width, int height, Vec3 cameraPos) {
+    for (size_t x = 0; x < width; x++) {
+        update_pixel(x, y, std::ref(scene), std::ref(image), width, height, cameraPos);
+    }
+}
+
+int main() {
+    using namespace std::chrono;
+    auto startTime = high_resolution_clock::now();
+
+    Scene scene;
+    scene.addObjects(OBJ_PATH, MTL_SEARCH_DIR);
+    scene.constructBVH();
+
+    auto timeAfterVBVH = high_resolution_clock::now();
+    std::cout << "BVH Construction time in seconds: " << duration_cast<seconds>(timeAfterVBVH - startTime).count()
+              << '\n';
+    int width = RESOLUTION, height = RESOLUTION;
+    std::vector<std::vector<Vec3>> image(height, std::vector<Vec3>(width));
+    Vec3 cameraPos = { 0.0f, 1.0f, 4.0f };
+
+    if constexpr (!DEBUG) {
+        std::cout << "Debug mode disabled. Progress output will be in brief." << '\n';
+    }
+
+    // x: right
+    // y: up
+    // z: outwards
+    std::vector<std::thread> pixel_threads;
+    for (size_t y = 0; y < height; y++) {
+        pixel_threads.emplace_back(update_row, y, std::ref(scene), std::ref(image), width, height, cameraPos);
+    }
+    for (auto& i : pixel_threads) {
+        i.join();
+    }
+    std::cout << std::endl;
+
+    auto finishTime = high_resolution_clock::now();
+    std::cout << "Rendering time in seconds: " << duration_cast<seconds>(finishTime - timeAfterVBVH).count() << '\n';
+
+    std::filesystem::path outPath = std::filesystem::absolute(OUTPUT_PATH);
+
+    FILE* fp = fopen(outPath.string().c_str(), "wb");
+    (void) fprintf(fp, "P6\n%d %d\n255\n", width, height);
+    for (size_t y = 0; y < height; y++) {
+        for (size_t x = 0; x < width; x++) {
+            static unsigned char color[3];
+            color[0] = toLinear(image[y][x].x);
+            color[1] = toLinear(image[y][x].y);
+            color[2] = toLinear(image[y][x].z);
+            fwrite(color, 1, 3, fp);
+        }
+    }
+    fclose(fp);
+    std::cout << "Output image written to " << outPath << '\n';
+}
+```
+
+The below image was generated with 128 spp and max depth 8 in 109 seconds.
+![128 spp image - parellelized](parallelized.png)
