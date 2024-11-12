@@ -326,8 +326,8 @@ class GaussRenderer(nn.Module):
                 T = torch.cumprod(1 - alpha, dim = 1) # Hint: Check Eq. (6) in the instruction pdf
 
                 acc_alpha = torch.sum(alpha * T, dim = 1) # Hint: Check Eq. (8) in the instruction pdf
-                tile_color = torch.sum(T * alpha * sorted_color) + (1-acc_alpha) * C_BG # Hint: Check Eq. (5) in the instruction pdf
-                tile_depth = torch.sum(T * alpha * sorted_depths) # Hint: Check Eq. (7) in the instruction pdf
+                tile_color = torch.sum(T * alpha * sorted_color, dim = 1) + (1-acc_alpha) * C_BG # Hint: Check Eq. (5) in the instruction pdf
+                tile_depth = torch.sum(T * alpha * sorted_depths, dim = 1) # Hint: Check Eq. (7) in the instruction pdf
 
                 #############################################################################
                 #                             END OF YOUR CODE                              #
