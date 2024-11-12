@@ -65,8 +65,8 @@ def main():
             camera_idx = 0
         else:
             camera_idx = torch.randint(all_gt.shape[0], (1,))
-        gt_img = all_gt[camera_idx].cuda().squeeze(0)
-        c2w = all_c2w[camera_idx].cuda().squeeze(0)
+        gt_img = all_gt[camera_idx].cuda().squeeze(0) if torch.cuda.is_available() else all_gt[camera_idx].squeeze(0)
+        c2w = all_c2w[camera_idx].cuda().squeeze(0) if torch.cuda.is_available() else all_c2w[camera_idx].squeeze(0)
 
         camera = Camera(
             144,

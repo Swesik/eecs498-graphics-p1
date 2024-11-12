@@ -7,9 +7,10 @@ import torch.nn as nn
 
 from utils import eval_sh
 
+device_type = "cuda" if torch.cuda.is_available() else "cpu"
 
 def strip_lowerdiag(L):
-    uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device="cuda")
+    uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device=device_type)
     uncertainty[:, 0] = L[:, 0, 0]
     uncertainty[:, 1] = L[:, 0, 1]
     uncertainty[:, 2] = L[:, 0, 2]
@@ -65,7 +66,7 @@ def build_rotation(r):
     #############################################################################
     # Get the rotation matrix from the quaternion
     # Here, we already help you initialize the Rotation Matrix to be (3x3) all zero matrix
-    R = torch.zeros((q.size(0), 3, 3), device="cuda")
+    R = torch.zeros((q.size(0), 3, 3), device=device_type)
     R[:, 0, 0] = 1 - (2 * y * y) - (2 * z * z)
     R[:, 0, 1] = (2 * x * y) - (2 * r * z)
     R[:, 0, 2] = (2 * x * z) + (2 * r * y)
@@ -94,7 +95,7 @@ def build_scaling_rotation(scaling_vector, quaternion_vector):
         - L: [B, 3, 3], the scaling-rotation matrix.
     """
     S = torch.zeros(
-        (scaling_vector.shape[0], 3, 3), dtype=torch.float, device="cuda"
+        (scaling_vector.shape[0], 3, 3), dtype=torch.float, device=device_type
     )  # s.shape[0] is B (Batch size)
     R = build_rotation(quaternion_vector)
 
@@ -254,7 +255,7 @@ class GaussRenderer(nn.Module):
         self.white_bkgd = white_bkgd
         self.pix_coord = torch.stack(
             torch.meshgrid(torch.arange(H), torch.arange(W), indexing="xy"), dim=-1
-        ).to("cuda")
+        ).to(device_type)
 
     def build_color(self, means3D, shs, camera):
         rays_o = camera.camera_center
@@ -273,9 +274,9 @@ class GaussRenderer(nn.Module):
             means2D, radii, width=camera.image_width, height=camera.image_height
         )
 
-        self.render_color = torch.ones(*self.pix_coord.shape[:2], 3).to("cuda")
-        self.render_depth = torch.zeros(*self.pix_coord.shape[:2], 1).to("cuda")
-        self.render_alpha = torch.zeros(*self.pix_coord.shape[:2], 1).to("cuda")
+        self.render_color = torch.ones(*self.pix_coord.shape[:2], 3).to(device_type)
+        self.render_depth = torch.zeros(*self.pix_coord.shape[:2], 1).to(device_type)
+        self.render_alpha = torch.zeros(*self.pix_coord.shape[:2], 1).to(device_type)
 
         TILE_SIZE = 16
         for h in range(0, camera.image_height, TILE_SIZE):
