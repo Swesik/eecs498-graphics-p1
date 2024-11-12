@@ -180,8 +180,9 @@ def build_covariance_2d(mean3d, cov3d, viewmatrix, fov_x, fov_y, focal_x, focal_
     #############################################################################
     # Calculate the 2D covariance matrix cov2d
     # Hint: Check Args explaination for cov3d; For clean code of matrix multiplication, consider using @
+    
+    cov2d = J @ W @ cov3d @ W.T @ J.transpose(dim0=1,dim1=2)
 
-    cov2d = J @ W @ cov3d @ W.T @ J.T
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -284,8 +285,9 @@ class GaussRenderer(nn.Module):
                 #############################################################################
                 # check if the 2D gaussian intersects with the tile 
                 # To do so, we need to check if the rectangle of the 2D gaussian (rect) intersects with the tile
+                
+                in_mask = (rect[0][:, 0] > w) .logical_and (rect[0][:, 1] > h) .logical_and (rect[1][:, 0] < w + TILE_SIZE) .logical_and (rect[1][:, 1] < h + TILE_SIZE)
 
-                in_mask = rect[0][:, 0] > w and rect[0][:, 1] > h and rect[1][:, 0] < w + TILE_SIZE and rect[1][:, 1] < h + TILE_SIZE
                 #############################################################################
                 #                             END OF YOUR CODE                              #
                 #############################################################################
@@ -303,7 +305,7 @@ class GaussRenderer(nn.Module):
                 sorted_inverse_conv = sorted_cov2d.inverse()  # inverse of variance
                 sorted_opacity = opacity[in_mask][index]
                 sorted_color = color[in_mask][index]
-                dx = tile_coord[:, None, :] - sorted_means2D[None, :]  # B P 2   - dx.T : B P 1 2 (cross) P, 2, 2 (cross) B P 2 2
+                dx = tile_coord[:, None, :] - sorted_means2D[None, :]  # B P 2
 
                 #############################################################################
                 #                                   TODO: Task 4                           #
@@ -321,13 +323,16 @@ class GaussRenderer(nn.Module):
                 unsqueezed_dx = dx.unsqueeze(-1)
                 ln_weight = -0.5 * torch.transpose(unsqueezed_dx, dim0=2, dim1=-1) @ sorted_inverse_conv @ unsqueezed_dx
                 gauss_weight = torch.exp(ln_weight.squeeze()) # Hint: Check step 1 in the instruction pdf
+
+                if len(gauss_weight.shape) == 1 : # if P == 1
+                    gauss_weight = gauss_weight.unsqueeze(-1)
                 
                 alpha = (gauss_weight[..., None] * sorted_opacity[None]).clip(max=0.99) # Hint: Check step 2 in the instruction pdf
                 T = torch.cumprod(1 - alpha, dim = 1) # Hint: Check Eq. (6) in the instruction pdf
-
                 acc_alpha = torch.sum(alpha * T, dim = 1) # Hint: Check Eq. (8) in the instruction pdf
-                tile_color = torch.sum(T * alpha * sorted_color, dim = 1) + (1-acc_alpha) * C_BG # Hint: Check Eq. (5) in the instruction pdf
-                tile_depth = torch.sum(T * alpha * sorted_depths, dim = 1) # Hint: Check Eq. (7) in the instruction pdf
+
+                tile_color = torch.sum(T * alpha * sorted_color, dim = 1) + ((1-acc_alpha) * C_BG) # Hint: Check Eq. (5) in the instruction pdf
+                tile_depth = torch.sum(T * alpha * sorted_depths.unsqueeze(-1), dim = 1) # Hint: Check Eq. (7) in the instruction pdf
 
                 #############################################################################
                 #                             END OF YOUR CODE                              #
