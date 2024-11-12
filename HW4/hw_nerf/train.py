@@ -12,7 +12,13 @@ import torchvision.transforms.functional as TF
 import imageio
 import gdown
 from nerf_model import VeryTinyNerfModel, get_rays, render
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 mse2psnr = lambda x : -10. * torch.log(x) / torch.log(torch.Tensor([10.])).to(device)
 
@@ -78,7 +84,7 @@ def train(rawData, model, optimizer, n_iters=3000):
             # Render a test image to evaluate the current model performance.
             with torch.no_grad():
                 rays_o, rays_d = get_rays(H, W, focal, testpose)
-                rgb, depth = render(model, rays_o, rays_d, near=1., far=7., n_samples=n_samples)
+                rgb, depth = render(model, rays_o, rays_d, near=1., far=7., n_samples=n_samples, rand=False)
                 loss = torch.nn.functional.mse_loss(rgb, testimg)
                 # Calculate PSNR for the rendered image.
                 psnr = mse2psnr(loss)
@@ -138,18 +144,19 @@ def main():
 
     nerf = VeryTinyNerfModel()
     nerf = nn.DataParallel(nerf).to(device)
-    ckpt = torch.load('pretrained.pth')
+    ckpt = torch.load('pretrained.pth', map_location=("cuda" if torch.cuda.is_available() else "cpu"))
     nerf.load_state_dict(ckpt)
     test_img_idx_list = [0, 40, 85]
     with torch.no_grad():
         test_img_idx = test_img_idx_list[-1]
         rays_o, rays_d = get_rays(H, W, focal, poses[test_img_idx])
+
         #############################################################################
         #                                   TODO: Task 5 B                          #
         #############################################################################
         # Render the scene using the current model state. You may want to use near = 2, far = 6, n_samples = 64 
         
-        # rgb, depth = ..., 
+        rgb, depth = render(nerf, rays_o, rays_d, near = 2, far = 6, n_samples=64)
 
         #############################################################################
         #                             END OF YOUR CODE                              #
