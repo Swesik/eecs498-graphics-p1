@@ -22,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 mse2psnr = lambda x : -10. * torch.log(x) / torch.log(torch.Tensor([10.])).to(device)
 
-def train(rawData, model, optimizer, n_iters=3000):
+def train(rawData, model, optimizer : optim.Optimizer, n_iters=3000):
     """
     Train the Neural Radiance Field (NeRF) model. This function performs training over a specified number of iterations,
     updating the model parameters to minimize the difference between rendered and actual images.
@@ -68,12 +68,19 @@ def train(rawData, model, optimizer, n_iters=3000):
         # Compute the rays for the selected image.
         # Render the scene using the current model state.
 
-        # rays_o, rays_d = ...
-        # rgb, depth = ...
+        NEAR_PLANE = 2
+        FAR_PLANE = 6
+        N_SAMPLES = 64
+        
+        rays_o, rays_d = get_rays(H, W, focal, pose)
+        rgb, depth = render(model, rays_o, rays_d, near = NEAR_PLANE, far = FAR_PLANE, n_samples=N_SAMPLES)
 
-        # optimizer...
-        # image_loss = ...
-        # ...
+        model.train()  # Set model to training mode
+        optimizer.zero_grad()  # Clear any previous gradients
+        loss_fn = nn.MSELoss()
+        image_loss = loss_fn(rgb, target)
+        image_loss.backward()
+        optimizer.step()
 
         #############################################################################
         #                             END OF YOUR CODE                              #
@@ -194,7 +201,7 @@ def main():
             #############################################################################
             # Render the scene using the current model state. You may want to use near = 2, far = 6, n_samples = 64.
 
-            # rgb, depth = ...
+            rgb, depth = render(nerf, rays_o, rays_d, near = 2, far = 6, n_samples=64)
             #############################################################################
             #                             END OF YOUR CODE                              #
             #############################################################################
