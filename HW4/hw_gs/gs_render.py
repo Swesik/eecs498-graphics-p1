@@ -287,7 +287,14 @@ class GaussRenderer(nn.Module):
                 # check if the 2D gaussian intersects with the tile 
                 # To do so, we need to check if the rectangle of the 2D gaussian (rect) intersects with the tile
                 
-                in_mask = (rect[0][:, 0] > w) .logical_and (rect[0][:, 1] > h) .logical_and (rect[1][:, 0] < w + TILE_SIZE) .logical_and (rect[1][:, 1] < h + TILE_SIZE)
+                assert((rect[0][:, 0] > rect[1][:, 0]).sum() == 0)
+                assert((rect[0][:, 1] > rect[1][:, 1]).sum() == 0)
+                
+                lower_w = rect[0][:, 0] < w + TILE_SIZE
+                lower_h = rect[0][:, 1] < h + TILE_SIZE
+                upper_w = rect[1][:, 0] > w 
+                upper_h = rect[1][:, 1] > h 
+                in_mask = (lower_w).logical_and(lower_h).logical_and(upper_w).logical_and(upper_h)
 
                 #############################################################################
                 #                             END OF YOUR CODE                              #
@@ -320,19 +327,18 @@ class GaussRenderer(nn.Module):
                 # Step 3: calculate the accumulated alpha, color and depth.
 
                 C_BG = torch.Tensor([1., 1., 1.]) # From piazza
-                
+
                 unsqueezed_dx = dx.unsqueeze(-1)
                 ln_weight = -0.5 * torch.transpose(unsqueezed_dx, dim0=2, dim1=-1) @ sorted_inverse_conv @ unsqueezed_dx
-                gauss_weight = torch.exp(ln_weight.squeeze()) # Hint: Check step 1 in the instruction pdf
-
-                if len(gauss_weight.shape) == 1 : # if P == 1
-                    gauss_weight = gauss_weight.unsqueeze(-1)
+                gauss_weight = torch.exp(ln_weight.squeeze(2, 3)) # Hint: Check step 1 in the instruction pdf
                 
                 alpha = (gauss_weight[..., None] * sorted_opacity[None]).clip(max=0.99) # Hint: Check step 2 in the instruction pdf
                 T = torch.cumprod(1 - alpha, dim = 1) # Hint: Check Eq. (6) in the instruction pdf
+                
                 acc_alpha = torch.sum(alpha * T, dim = 1) # Hint: Check Eq. (8) in the instruction pdf
 
                 tile_color = torch.sum(T * alpha * sorted_color, dim = 1) + ((1-acc_alpha) * C_BG) # Hint: Check Eq. (5) in the instruction pdf
+                # print(torch.sum(T * alpha * sorted_color, dim = 1) )
                 tile_depth = torch.sum(T * alpha * sorted_depths.unsqueeze(-1), dim = 1) # Hint: Check Eq. (7) in the instruction pdf
 
                 #############################################################################
