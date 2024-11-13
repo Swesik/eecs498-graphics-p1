@@ -239,7 +239,7 @@ def render(model, rays_o, rays_d, near, far, n_samples, rand=False):
     rgb_map = torch.sum(weights.unsqueeze(-1) * rgb, dim = 2)
     
     # Compute the depth map as the weighted sum of sampled depths.
-    depth_map = torch.sum(weights.unsqueeze(-1) * points.norm(-1), dim = 2).squeeze(-1)
+    depth_map = torch.sum(weights * t[None, None, ::], dim = -1)
 
     #############################################################################
     #                             END OF YOUR CODE                              #
