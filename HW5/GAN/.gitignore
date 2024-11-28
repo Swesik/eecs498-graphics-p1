@@ -11,3 +11,4 @@ training-runs/*
 *.txt
 *.sh
 *.log
+*checkpoint*
