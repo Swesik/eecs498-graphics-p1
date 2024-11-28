@@ -5,6 +5,7 @@ import torch.nn as nn
 from gs_render import build_scaling_rotation, inverse_sigmoid, strip_symmetric
 from utils import RGB2SH
 
+device_name = "cuda" if torch.cuda.is_available() else "cpu"
 
 class GaussModel(nn.Module):
     """
@@ -51,34 +52,33 @@ class GaussModel(nn.Module):
     def create_from_pcd(self, pcd_xyz, pcd_color):
         """
         create the guassian model from a color point cloud
-        """
+        """        
         points = pcd_xyz
         colors = pcd_color
 
-        fused_point_cloud = torch.tensor(np.asarray(points)).float().cuda()
-        fused_color = RGB2SH(torch.tensor(np.asarray(colors)).float().cuda())
+        fused_point_cloud = torch.tensor(np.asarray(points)).float()
+        rgb_color = torch.tensor(np.asarray(colors)).float()
+        fused_color = RGB2SH(rgb_color.cuda() if torch.cuda.is_available() else rgb_color)
 
         print("Number of points at initialisation : ", fused_point_cloud.shape[0])
 
-        features = (
-            torch.zeros((fused_color.shape[0], 3, (self.max_sh_degree + 1) ** 2))
-            .float()
-            .cuda()
-        )
+        features_val = torch.zeros((fused_color.shape[0], 3, (self.max_sh_degree + 1) ** 2)).float()
+        features = ((features_val.cuda() if torch.cuda.is_available() else features_val))
         features[:, :3, 0] = fused_color
         features[:, 3:, 1:] = 0.0
 
+        dist2_val = torch.ones_like(torch.from_numpy(np.asarray(points[..., 0]))).float()
         dist2 = (
-            torch.ones_like(torch.from_numpy(np.asarray(points[..., 0]))).float().cuda()
+            (dist2_val.cuda() if torch.cuda.is_available() else dist2_val)
             * 0.015
         )
         scales = torch.log(dist2)[..., None].repeat(1, 3)
-        rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
+        rots = torch.zeros((fused_point_cloud.shape[0], 4), device=device_name)
         rots[:, 0] = 1
         opacities = inverse_sigmoid(
             0.1
             * torch.ones(
-                (fused_point_cloud.shape[0], 1), dtype=torch.float, device="cuda"
+                (fused_point_cloud.shape[0], 1), dtype=torch.float, device=device_name
             )
         )
 
@@ -88,7 +88,7 @@ class GaussModel(nn.Module):
             opacities = inverse_sigmoid(
                 0.9
                 * torch.ones(
-                    (fused_point_cloud.shape[0], 1), dtype=torch.float, device="cuda"
+                    (fused_point_cloud.shape[0], 1), dtype=torch.float, device=device_name
                 )
             )
 
@@ -102,7 +102,7 @@ class GaussModel(nn.Module):
         self._scaling = nn.Parameter(scales.requires_grad_(True))
         self._rotation = nn.Parameter(rots.requires_grad_(True))
         self._opacity = nn.Parameter(opacities.requires_grad_(True))
-        self.max_radii2D = torch.zeros((self._xyz.shape[0]), device="cuda")
+        self.max_radii2D = torch.zeros((self._xyz.shape[0]), device=device_name)
         return self
 
     @property

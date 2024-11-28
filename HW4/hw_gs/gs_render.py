@@ -7,9 +7,10 @@ import torch.nn as nn
 
 from utils import eval_sh
 
+device_type = "cuda" if torch.cuda.is_available() else "cpu"
 
 def strip_lowerdiag(L):
-    uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device="cuda")
+    uncertainty = torch.zeros((L.shape[0], 6), dtype=torch.float, device=device_type)
     uncertainty[:, 0] = L[:, 0, 0]
     uncertainty[:, 1] = L[:, 0, 1]
     uncertainty[:, 2] = L[:, 0, 2]
@@ -65,7 +66,7 @@ def build_rotation(r):
     #############################################################################
     # Get the rotation matrix from the quaternion
     # Here, we already help you initialize the Rotation Matrix to be (3x3) all zero matrix
-    R = torch.zeros((q.size(0), 3, 3), device="cuda")
+    R = torch.zeros((q.size(0), 3, 3), device=device_type)
     R[:, 0, 0] = 1 - (2 * y * y) - (2 * z * z)
     R[:, 0, 1] = (2 * x * y) - (2 * r * z)
     R[:, 0, 2] = (2 * x * z) + (2 * r * y)
@@ -94,7 +95,7 @@ def build_scaling_rotation(scaling_vector, quaternion_vector):
         - L: [B, 3, 3], the scaling-rotation matrix.
     """
     S = torch.zeros(
-        (scaling_vector.shape[0], 3, 3), dtype=torch.float, device="cuda"
+        (scaling_vector.shape[0], 3, 3), dtype=torch.float, device=device_type
     )  # s.shape[0] is B (Batch size)
     R = build_rotation(quaternion_vector)
 
@@ -180,8 +181,9 @@ def build_covariance_2d(mean3d, cov3d, viewmatrix, fov_x, fov_y, focal_x, focal_
     #############################################################################
     # Calculate the 2D covariance matrix cov2d
     # Hint: Check Args explaination for cov3d; For clean code of matrix multiplication, consider using @
+    
+    cov2d = J @ W @ cov3d @ W.T @ J.transpose(dim0=1,dim1=2)
 
-    cov2d = J @ W @ cov3d @ W.T @ J.T
     #############################################################################
     #                             END OF YOUR CODE                              #
     #############################################################################
@@ -253,7 +255,7 @@ class GaussRenderer(nn.Module):
         self.white_bkgd = white_bkgd
         self.pix_coord = torch.stack(
             torch.meshgrid(torch.arange(H), torch.arange(W), indexing="xy"), dim=-1
-        ).to("cuda")
+        ).to(device_type)
 
     def build_color(self, means3D, shs, camera):
         rays_o = camera.camera_center
@@ -272,9 +274,9 @@ class GaussRenderer(nn.Module):
             means2D, radii, width=camera.image_width, height=camera.image_height
         )
 
-        self.render_color = torch.ones(*self.pix_coord.shape[:2], 3).to("cuda")
-        self.render_depth = torch.zeros(*self.pix_coord.shape[:2], 1).to("cuda")
-        self.render_alpha = torch.zeros(*self.pix_coord.shape[:2], 1).to("cuda")
+        self.render_color = torch.ones(*self.pix_coord.shape[:2], 3).to(device_type)
+        self.render_depth = torch.zeros(*self.pix_coord.shape[:2], 1).to(device_type)
+        self.render_alpha = torch.zeros(*self.pix_coord.shape[:2], 1).to(device_type)
 
         TILE_SIZE = 16
         for h in range(0, camera.image_height, TILE_SIZE):
@@ -284,8 +286,16 @@ class GaussRenderer(nn.Module):
                 #############################################################################
                 # check if the 2D gaussian intersects with the tile 
                 # To do so, we need to check if the rectangle of the 2D gaussian (rect) intersects with the tile
+                
+                assert((rect[0][:, 0] > rect[1][:, 0]).sum() == 0)
+                assert((rect[0][:, 1] > rect[1][:, 1]).sum() == 0)
+                
+                lower_w = rect[0][:, 0] < w + TILE_SIZE
+                lower_h = rect[0][:, 1] < h + TILE_SIZE
+                upper_w = rect[1][:, 0] > w 
+                upper_h = rect[1][:, 1] > h 
+                in_mask = (lower_w).logical_and(lower_h).logical_and(upper_w).logical_and(upper_h)
 
-                in_mask = rect[0][:, 0] > w and rect[0][:, 1] > h and rect[1][:, 0] < w + TILE_SIZE and rect[1][:, 1] < h + TILE_SIZE
                 #############################################################################
                 #                             END OF YOUR CODE                              #
                 #############################################################################
@@ -303,7 +313,7 @@ class GaussRenderer(nn.Module):
                 sorted_inverse_conv = sorted_cov2d.inverse()  # inverse of variance
                 sorted_opacity = opacity[in_mask][index]
                 sorted_color = color[in_mask][index]
-                dx = tile_coord[:, None, :] - sorted_means2D[None, :]  # B P 2   - dx.T : B P 1 2 (cross) P, 2, 2 (cross) B P 2 2
+                dx = tile_coord[:, None, :] - sorted_means2D[None, :]  # B P 2
 
                 #############################################################################
                 #                                   TODO: Task 4                           #
@@ -317,17 +327,19 @@ class GaussRenderer(nn.Module):
                 # Step 3: calculate the accumulated alpha, color and depth.
 
                 C_BG = torch.Tensor([1., 1., 1.]) # From piazza
-                
+
                 unsqueezed_dx = dx.unsqueeze(-1)
                 ln_weight = -0.5 * torch.transpose(unsqueezed_dx, dim0=2, dim1=-1) @ sorted_inverse_conv @ unsqueezed_dx
-                gauss_weight = torch.exp(ln_weight.squeeze()) # Hint: Check step 1 in the instruction pdf
+                gauss_weight = torch.exp(ln_weight.squeeze(2, 3)) # Hint: Check step 1 in the instruction pdf
                 
                 alpha = (gauss_weight[..., None] * sorted_opacity[None]).clip(max=0.99) # Hint: Check step 2 in the instruction pdf
                 T = torch.cumprod(1 - alpha, dim = 1) # Hint: Check Eq. (6) in the instruction pdf
-
+                
                 acc_alpha = torch.sum(alpha * T, dim = 1) # Hint: Check Eq. (8) in the instruction pdf
-                tile_color = torch.sum(T * alpha * sorted_color, dim = 1) + (1-acc_alpha) * C_BG # Hint: Check Eq. (5) in the instruction pdf
-                tile_depth = torch.sum(T * alpha * sorted_depths, dim = 1) # Hint: Check Eq. (7) in the instruction pdf
+
+                tile_color = torch.sum(T * alpha * sorted_color, dim = 1) + ((1-acc_alpha) * C_BG) # Hint: Check Eq. (5) in the instruction pdf
+                # print(torch.sum(T * alpha * sorted_color, dim = 1) )
+                tile_depth = torch.sum(T * alpha * sorted_depths.unsqueeze(-1), dim = 1) # Hint: Check Eq. (7) in the instruction pdf
 
                 #############################################################################
                 #                             END OF YOUR CODE                              #
