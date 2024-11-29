@@ -1,5 +1,5 @@
 # CG_GAN_hw
-
+cd /scratch/eecs498s014f24_class_root/eecs498s014f24_class/swesik
 
 ## Installation
 module load python3.9-anaconda
