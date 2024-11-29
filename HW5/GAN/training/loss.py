@@ -160,7 +160,7 @@ class StyleGAN2Loss(Loss):
                     # TODO #5: Implement the R1 regularization term.
                     # Note1: r1_grads is gradient to the discriminator; gamma term is the self.r1_gamma
                     # Note2: Expection term is to calculate the sum across all dimension except the batch dimension (the first dimension)
-                    loss_Dr1 = None       # This the is the final R1 regulatization value
+                    loss_Dr1 = 0.5 * self.r1_gamma * r1_grads.square().sum(dim=tuple(range(1, r1_grads.dim())))       # This the is the final R1 regulatization value
 
                     ##################################################################################################################################
 
