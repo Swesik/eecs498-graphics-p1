@@ -443,7 +443,7 @@ class DDPMScheduler(SchedulerMixin, ConfigMixin):
 
         ############################################ TODO #1 ##################################################
         alpha_prod_t = self.alphas_cumprod[t]              # Check Formula (3)   "t" variable is the variable of the timestep
-        alpha_prod_t_prev = self.alphas_cumprod[prev_t] if prev_t >= 0 else self.final_alpha_cumprod      # Check Formula (4)   "prev_t" variable is the t-1 timestep. Also, think about minor case if prev_t will be less than zero?
+        alpha_prod_t_prev = self.alphas_cumprod[prev_t] if prev_t >= 0 else torch.tensor(1.0)      # Check Formula (4)   "prev_t" variable is the t-1 timestep. Also, think about minor case if prev_t will be less than zero?
         beta_prod_t = 1 - alpha_prod_t                     # Check Formula (5)
         beta_prod_t_prev = 1 - alpha_prod_t_prev           # Check Formula (6)
         current_alpha_t = alpha_prod_t/alpha_prod_t_prev   # Check Formula (7)   
