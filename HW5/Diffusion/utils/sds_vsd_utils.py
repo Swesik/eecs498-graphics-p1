@@ -121,8 +121,7 @@ def get_loss_weights(betas, args):
 
         # Implement the weight term of formula (14) and (15) at timestep t
         # Note: sqrt_1m_alphas_cumprod is the sqrt(1-alpha_t^2)
-        print("weight = ", sqrt_1m_alphas_cumprod.shape)
-        weight = sqrt_1m_alphas_cumprod * sqrt_1m_alphas_cumprod
+        weight = sqrt_1m_alphas_cumprod[t] * sqrt_1m_alphas_cumprod[t]
 
         ####################### End Your Code Here ###########################
 
