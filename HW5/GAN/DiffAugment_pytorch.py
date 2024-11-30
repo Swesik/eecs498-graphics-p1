@@ -64,7 +64,22 @@ def rand_cutout(x, ratio=0.5):
         x (torch):      Pytorch image with cutout 
     '''
     # TODO: Implement the Rand Cutout; The range should be randomly chosen in 25%-50% of the height and width; position is random.
+    B, C, H, W = x.size()
+    ratio = 0.25 + 0.25 * torch.rand(1)
+    cutout_h = int(ratio * H)
+    cutout_w = int(ratio * W)
+    h_max = H - cutout_h
+    w_max = W - cutout_w
+    
+    top_left_h = torch.randint(0,h_max,(B,))
+    top_left_w = torch.randint(0,w_max,(B,))
+    bot_right_h = top_left_h + cutout_h
+    bot_right_w = top_left_w + cutout_w
+    
+    for i in range(B):
+        x[i, :, top_left_h[i]:bot_right_h[i], top_left_w[i]:bot_right_w[i]] = 0
 
+        
     ###############################################################################################################
 
     return x
