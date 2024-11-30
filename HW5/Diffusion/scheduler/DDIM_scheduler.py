@@ -403,8 +403,8 @@ class DDIMScheduler(SchedulerMixin, ConfigMixin):
         ####################################################### TODO #1: DDIM ##########################################################
         # The variable naming is the same as DDPM, please check DDPM note again.
         
-        beta_prod_t = None                    # Check Formula (10)
-        pred_original_sample = None           # Check "predicted x0" term in Formula (9)
+        beta_prod_t = 1 - alpha_prod_t                                                                      # Check Formula (10)
+        pred_original_sample = (sample - math.sqrt(beta_prod_t) * model_output) / math.sqrt(alpha_prod_t)   # Check "predicted x0" term in Formula (9)
 
         ############################################# Code Ends here for DDIM ##########################################################
 
@@ -431,7 +431,8 @@ class DDIMScheduler(SchedulerMixin, ConfigMixin):
         # NOTE: random noise is already implemented, no need to add this term.
         # NOTE: The formula variable naming is the same as DDPM, check DDPM code for the variable name.  
         # NOTE: sigma_t in formula is named as sigma_t in this file
-        prev_sample = None                  
+        prev_sample = math.sqrt(alpha_prod_t_prev) * pred_original_sample \
+                        + math.sqrt(1 - alpha_prod_t_prev - (sigma_t * sigma_t)) * model_output                
         
 
         ###########################################################################################################
