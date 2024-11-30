@@ -375,7 +375,7 @@ def main():
             print(type(loss_weights))
             print(len(loss_weights))
             print(type(grad_))
-            print(grad_.shape())
+            print(grad_.shape)
             grad_ = loss_weights * grad_
 
             ############################################ End Your Code Here ##############################################
