@@ -1,4 +1,5 @@
 # Diffusion_HW
+cd /scratch/eecs498s014f24_class_root/eecs498s014f24_class/swesik
 
 ## Install
 conda create -n diffusion python=3.10
