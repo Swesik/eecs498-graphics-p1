@@ -372,12 +372,12 @@ def main():
             # With grad_, implement the rest of Formula (16) to obtain the gradient of L_SDS (In VSD, this is L_VSD)
 
             # Multiply grad_ with loss_weights at the timestep t (Hint: use breakpoint to check loss_weights data structure)
-            # print(t)
-            # print(loss_weights[t])
-            # print(type(loss_weights))
-            # print(len(loss_weights))
-            # print(type(grad_))
-            # print(grad_.shape)
+            print(t)
+            print(loss_weights[t])
+            print(type(loss_weights))
+            print(len(loss_weights))
+            print(type(grad_))
+            print(grad_.shape)
             grad_ = loss_weights[t] * grad_
 
             ############################################ End Your Code Here ##############################################
