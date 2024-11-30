@@ -477,7 +477,7 @@ class DDIMScheduler(SchedulerMixin, ConfigMixin):
             #           ζ_t   -> DPS_scale
             # NOTE 2: A(x0) can be calculated by operator.forward(pred_original_sample, mask)
             # NOTE 3: ∇x_t can be calculated by torch.autograd.grad(outputs = ?, inputs = sample)[0]
-            with torch.no_grad:
+            with torch.no_grad():
                 prev_sample = prev_sample \
                                 - DPS_scale * torch.autograd.grad(outputs = measurement, inputs = sample)[0] \
                                 * torch.norm(measurement - operator.forward(pred_original_sample, mask))
