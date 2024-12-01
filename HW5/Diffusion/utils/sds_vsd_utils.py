@@ -252,7 +252,7 @@ def sds_vsd_grad_diffuser(unet, noisy_latents, noise, text_embeddings, t, unet_p
 
         # Implement the grad calcualtion based on the Formula (17) provided in the instructions. Also, multiply the result with grad_scale
         # Hint: Understand what noise_pred_phi refers to (No need to dive into predict_noise0_diffuser).
-        grad_ = None
+        grad_ = noise_pred - noise_pred_phi
 
         ################################## Code ends here for VSD ########################################
 
