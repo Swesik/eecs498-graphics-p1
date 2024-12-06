@@ -2,11 +2,22 @@
 # GAN
 ## Task 2:
 ### Question:
-Please explain what is the difference between $E_{z∼p(Z)}$ term in Eq. 2 and Eq. 1? And why there is such a
-difference between the Generator and the Discriminator? Briefly explain the difference between the objective of the Generator and the Discriminator loss function is adequate.
+Please explain what is the difference between $E_{z∼p(Z)}$ term in Eq. 2 and Eq. 1? And why there is such a difference between the Generator and the Discriminator? Briefly explain the difference between the objective of the Generator and the Discriminator loss function is adequate.
 
 ### Answer:
 In the case of $\mathcal{L}_\mathcal{G}$, the $E_{z∼p(z)}$ term quantifies how poor the Generator is at fooling the discriminator. On the other hand, the $E_{z∼p(z)}$ term in $\mathcal{L}_\mathcal{D}$ quantifies how poor the discriminator is at distinguishing the generator's output as a fake image.
+
+## Task 3 (optional):
+### Question:
+Despite the two regularization techniques we have shown above, what are some other
+augmentation or regularization techniques that are functional in GAN? Please search for the literature online and list
+three or more here.
+
+### Answer:
+WGAN-GP Loss
+Spectral Normalization
+Label Smoothing
+Consistency Regularization
 
 ## Task 5 (optional):
 ### Question: 
